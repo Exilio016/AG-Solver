@@ -30,19 +30,67 @@ private:
     void mountIntVars(std::string exp);
     void mountBinVars(std::string exp);
     void genPop(int numPop);
-    int evaluate(float *d_ct, float *d_x, float *d_res, float *ret);
+    int evaluate();
     void newPop(int best_index);
     int isFactible(int index);
     void preprocess();
     int prepare();
 public:
+    /**
+     * Construtor da classe Linear que irá resolver o problema de otimização linear
+     * @param n - Número de váriaveis do problema de otimização a ser resolvido
+     */
     explicit Linear(int n);
+
+    /**
+     * Método que adiciona a funcão de otimização no formato:
+     * 'min a0x0 + a1x1 + ... + anxn' ou 'max a0x0 + a1x1 + ... + anxn'
+     * com ai sendo um número real, com i = 0,1,2,...,n
+     * @param exp - função de otimização
+     */
     void setZFunc(std::string exp);
+
+    /**
+     * Método que adiciona uma restrição ao problema de otmização, no formato:
+     * 'a0x0 + ... + anxn <= b' ou 'a0x0 + ... + anxn >= b' ou 'a0x0 + ... + anxn = b'
+     *  com ai sendo um número real, com i = 0,1,2,...,n
+     * @param exp - restrição a ser adicionada
+     */
     void setRestriction(std::string exp);
-    int resolve(int numGens, int numPop, float *z);
+
+    /**
+     * Método que adiciona uma restrição de variáveis inteiras no formato
+     * 'xa, xb, xc, ...', com a, b e c sendo números inteiros referentes aos indices,
+     * que deseja que a variável seja inteira
+     * @param exp - restrição a ser adicionada
+     */
     void setIntVars(std::string exp);
+
+    /**
+     * Método que adiciona uma restrição de variáveis binárias no formato
+     * 'xa, xb, xc, ...', com a, b e c sendo números inteiros referentes aos indices,
+     * que deseja que a variável seja binária
+     * @param exp - restrição a ser adicionada
+     */
     void setBinVars(std::string exp);
 
+    /**
+     * Método que resolve o problema de otimização utilizando um algorítimo evolutivo
+     * Esse método só irá funcionar corretamente se a função de otimização, as restrições,
+     * as variáveis inteiras e as binárias já tenham sido adicionadas ao problema
+     * @param numGens - Número de gerações do algorítimo evolutivo
+     * @param numPop - Número de indivíduos na população do algorítimo evolutivo
+     * @return indíce do vetor de população que contém a melhor solução
+     */
+    int resolve(int numGens, int numPop);
+
+    /**
+     * Retorna o vetor x, ou seja o vetor contendo uma solução do problema de otimização,
+     * na posição dada do vetor de população, esse método só irá funcionar corretamente,
+     * se executado após o método resolve.
+     * @param index - indíce do vetor de população que contém a solução desejada
+     * @return vetor x contendo a solução para o problema de otimização
+     */
     float *getX(int index);
 };
 

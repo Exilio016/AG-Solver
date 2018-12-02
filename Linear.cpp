@@ -319,7 +319,7 @@ void cruzar(float *x1, float *x2, float *a, float *b, var_rule_t *rules, int num
     generateGaps(x1, b, a, num_x, num_gaps, cols_a, rules);
 }
 
-int Linear::resolve(int numGens, int numPop, float *z) {
+int Linear::resolve(int numGens, int numPop) {
     float *d_ct, *d_x, *d_res;
     int best = -1;
 
@@ -341,13 +341,14 @@ int Linear::resolve(int numGens, int numPop, float *z) {
     return best;
 }
 
-int Linear::evaluate(float *d_ct, float *d_x, float *d_res, float *ret) {
+int Linear::evaluate() {
     float best, res;
     int pos_best = -1;
     bool first = true;
     for(int i = 0; i < num_pop; i++){
         if(isFactible(i)) {
             matrix_mult(&res, ct, 1, num_x + num_gaps, pop[i]->x, num_x + num_gaps, 1);
+            pop[i]->z = res;
 
             if (isMin) {
                 if (first || res < best) {
@@ -364,8 +365,6 @@ int Linear::evaluate(float *d_ct, float *d_x, float *d_res, float *ret) {
             }
         }
     }
-    if(pos_best != -1)
-        *ret = best;
     return pos_best;
 }
 
