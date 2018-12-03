@@ -9,7 +9,7 @@
 #include "utils.h"
 
 #define LESS_AND_EQUAL 1
-#define MORE_AND_EQUAL 0
+#define GREATER_AND_EQUAL 0
 #define EQUAL 2
 #define T_MUT 10
 
@@ -122,7 +122,7 @@ int Linear::mountRestriction(std::string exp, int row) {
 
             var_rule_t rule;
             rule.min = 0;
-            rule.isLess = MORE_AND_EQUAL;
+            rule.isLess = GREATER_AND_EQUAL;
 
             this->rules[row+num_x] = rule;
         }
@@ -223,14 +223,14 @@ void Linear::preProcess() {
                 if (rules[num_surplus + j].isLess == LESS_AND_EQUAL && a[j * cols_a + i] > 0) {
                     int aux = (int) (b[j] / a[j * cols_a + i]);
                     if (aux < rules[i].max) rules[i].max = aux;
-                } else if (rules[num_surplus + j].isLess == MORE_AND_EQUAL && a[j * cols_a + i] < 0) {
+                } else if (rules[num_surplus + j].isLess == GREATER_AND_EQUAL && a[j * cols_a + i] < 0) {
                     int aux = (int) (b[j] / (-1 * a[j * cols_a + i]));
                     if (aux < rules[i].max) rules[i].max = aux;
                 }
             }
 
             else{
-                if (rules[num_surplus + j].isLess == MORE_AND_EQUAL && a[j * cols_a + i] > 0) {
+                if (rules[num_surplus + j].isLess == GREATER_AND_EQUAL && a[j * cols_a + i] > 0) {
                     int aux = (int) (b[j] / a[j * cols_a + 1]);
                     if (aux > rules[i].min) rules[i].min = aux;
                 }
@@ -264,7 +264,7 @@ void generateSurplus(float *x, float *b, float *a, int num_x, int num_surplus, i
         }
 
         //Se a restrição for f(x0,..,xn) >= b, a variável é igual a f(x0,...,xn) - b
-        else if(rules[i].isLess == MORE_AND_EQUAL){
+        else if(rules[i].isLess == GREATER_AND_EQUAL){
             x[i] = 0;
             for(int j = 0; j < num_x; j++){
                 x[i] += a[row*cols_a + j] * x[j];
