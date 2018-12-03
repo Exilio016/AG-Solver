@@ -219,13 +219,25 @@ void Linear::preProcess() {
 
     for(int i = 0; i < num_x; i++){
         for(int j = 0; j < rows_a; j++){
-            if(rules[num_surplus + j].isLess == LESS_AND_EQUAL && a[j * cols_a + i] > 0){
-                int aux = (int) (b[j] / a[j * cols_a + i]);
-                if(aux < rules[i].max) rules[i].max = aux;
+            if(isMin) {
+                if (rules[num_surplus + j].isLess == LESS_AND_EQUAL && a[j * cols_a + i] > 0) {
+                    int aux = (int) (b[j] / a[j * cols_a + i]);
+                    if (aux < rules[i].max) rules[i].max = aux;
+                } else if (rules[num_surplus + j].isLess == MORE_AND_EQUAL && a[j * cols_a + i] < 0) {
+                    int aux = (int) (b[j] / (-1 * a[j * cols_a + i]));
+                    if (aux < rules[i].max) rules[i].max = aux;
+                }
             }
-            else if(rules[num_surplus + j].isLess == MORE_AND_EQUAL && a[j * cols_a + i] < 0){
-                int aux = (int) (b[j] / -1*a[j * cols_a + i]);
-                if(aux < rules[i].max) rules[i].max = aux;
+
+            else{
+                if (rules[num_surplus + j].isLess == MORE_AND_EQUAL && a[j * cols_a + i] > 0) {
+                    int aux = (int) (b[j] / a[j * cols_a + 1]);
+                    if (aux > rules[i].min) rules[i].min = aux;
+                }
+                else if(rules[num_surplus + j].isLess == LESS_AND_EQUAL && a[j * cols_a + i] < 0) {
+                    int aux = (int) (b[j] / (-1* a[j * cols_a + i]));
+                    if (aux > rules[i].min) rules[i].min = aux;
+                }
             }
         }
     }
