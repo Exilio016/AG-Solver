@@ -3,4 +3,4 @@ project(OtimizacaoLinear_AG)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(OtimizacaoLinear_AG main.cpp Linear.h Linear.cpp)
+add_executable(OtimizacaoLinear_AG main.cpp Linear.h Linear.cpp utils.cpp utils.h)

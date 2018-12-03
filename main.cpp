@@ -15,7 +15,7 @@ int main() {
 
     for(int i = 0; i < n; i++){
         std::getline(std::cin, func);
-        problem->setRestriction(func);
+        problem->setConstraint(func);
     }
 
     std::getline(std::cin, func);
@@ -27,16 +27,6 @@ int main() {
     std::getline(std::cin, func);
     problem->setBinVars(func);
 
-    float z;
-    int i = problem->resolve(1000, 25, &z);
-
-    if(i >= 0) {
-        float *x = problem->getX(i);
-
-        for (int i = 0; i < nX; i++)
-            std::cout << std::to_string(x[i]) << " ";
-        std::cout << "\n";
-
-    }
+    problem->resolve(1000, 25);
     return 0;
 }

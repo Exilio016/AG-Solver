@@ -22,7 +22,7 @@ private:
     std::string intRes, binRes;
     int num_pop;
 
-    int num_x, rows_a, cols_a, num_gaps;
+    int num_x, rows_a, cols_a, num_surplus;
     bool isMin;
 
     int mountFunc(std::string exp);
@@ -32,9 +32,10 @@ private:
     void genPop(int numPop);
     int evaluate();
     void newPop(int best_index);
-    int isFactible(int index);
-    void preprocess();
+    int isFeasible(int index);
+    void preProcess();
     int prepare();
+
 public:
     /**
      * Construtor da classe Linear que irá resolver o problema de otimização linear
@@ -56,7 +57,7 @@ public:
      *  com ai sendo um número real, com i = 0,1,2,...,n
      * @param exp - restrição a ser adicionada
      */
-    void setRestriction(std::string exp);
+    void setConstraint(std::string exp);
 
     /**
      * Método que adiciona uma restrição de variáveis inteiras no formato
@@ -92,6 +93,15 @@ public:
      * @return vetor x contendo a solução para o problema de otimização
      */
     float *getX(int index);
+
+    /**
+     * Retorna o valor Z, ou seja o resultado da função de otimização,
+     * na posição dada do vetor de população, esse método só irá funcionar corretamente,
+     * se executado após o método resolve.
+     * @param index - indíce do vetor de população que contém a solução desejada
+     * @return valor Z resultado da função de otimização
+     */
+    float getZ(int index);
 };
 
 

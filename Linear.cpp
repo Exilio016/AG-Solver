@@ -2,11 +2,11 @@
 
 #include <iostream>
 #include <limits>
-#include <cstdlib>
-#include <ctime>
 #include <cmath>
+#include <ctime>
 
 #include "Linear.h"
+#include "utils.h"
 
 #define LESS_AND_EQUAL 1
 #define MORE_AND_EQUAL 0
@@ -14,25 +14,6 @@
 
 float global_max = 0;
 
-int matrix_mult(float *result, const float *m1, int rows_m1, int cols_m1, const float *m2, int rows_m2, int cols_m2){
-    for(int i = 0; i < rows_m1; i++){
-        for(int j = 0; j < cols_m2; j++){
-            result[i * cols_m2 + j] = 0;
-            for(int k = 0; k < cols_m1; k++){
-                result[i * cols_m2 + j] += m1[i * cols_m1 + k] * m2[i * cols_m2 + k];
-            }
-        }
-    }
-
-}
-
-float randomFloat(int min, int max){
-    return (((float ) (rand() % ((max - min + 1)*100)) / 100) + min);
-}
-
-int randomInt(int min, int max){
-    return ((rand() % (max - min + 1)) + min);
-}
 
 struct VAR_RULE{
     int isLess;
@@ -53,7 +34,7 @@ Linear::Linear(int n) {
     this->num_x = n;
     this->cols_a = n;
     this->rows_a = 0;
-    this->num_gaps = 0;
+    this->num_surplus = 0;
 }
 
 int Linear::mountFunc(string exp) {
@@ -176,9 +157,9 @@ void Linear::setZFunc(std::string exp) {
     this->func = std::move(exp);
 }
 
-void Linear::setRestriction(std::string exp) {
+void Linear::setConstraint(std::string exp) {
     this->restrictions.push_back(exp);
-    this->num_gaps++;
+    this->num_surplus++;
     this->cols_a++;
     this->rows_a++;
 }
@@ -202,10 +183,10 @@ void print_matrix(float *m,  int rows, int cols){
 }
 
 int Linear::prepare() {
-    this->ct = matrix_create(1, num_x + num_gaps);
+    this->ct = matrix_create(1, num_x + num_surplus);
     this->a = matrix_create(rows_a, cols_a);
     this->b = matrix_create(rows_a, 1);
-    this->rules = (var_rule_t *) (malloc(sizeof(var_rule_t) * (num_x + num_gaps)));
+    this->rules = (var_rule_t *) (malloc(sizeof(var_rule_t) * (num_x + num_surplus)));
 
     for(int i = 0; i < rows_a; i++){
         string exp = restrictions[i];
@@ -225,15 +206,15 @@ int Linear::prepare() {
     return this->mountFunc(func);
 }
 
-void Linear::preprocess() {
+void Linear::preProcess() {
 
     for(int i = 0; i < num_x; i++){
         for(int j = 0; j < rows_a; j++){
-            if(rules[num_gaps + j].isLess == LESS_AND_EQUAL && a[j * cols_a + i] > 0){
+            if(rules[num_surplus + j].isLess == LESS_AND_EQUAL && a[j * cols_a + i] > 0){
                 int aux = (int) (b[j] / a[j * cols_a + i]);
                 if(aux < rules[i].max) rules[i].max = aux;
             }
-            else if(rules[num_gaps + j].isLess == MORE_AND_EQUAL && a[j * cols_a + i] < 0){
+            else if(rules[num_surplus + j].isLess == MORE_AND_EQUAL && a[j * cols_a + i] < 0){
                 int aux = (int) (b[j] / -1*a[j * cols_a + i]);
                 if(aux < rules[i].max) rules[i].max = aux;
             }
@@ -285,9 +266,9 @@ void Linear::genPop(int numPop) {
         this->num_pop = numPop;
         for(int i = 0; i < numPop; i++){
             pop[i] = new population_t;
-            pop[i]->x = matrix_create(num_x + num_gaps, 1);
+            pop[i]->x = matrix_create(num_x + num_surplus, 1);
 
-            genX(pop[i]->x, b, a, num_x, num_gaps, cols_a, rules);
+            genX(pop[i]->x, b, a, num_x, num_surplus, cols_a, rules);
         }
     }
 }
@@ -320,22 +301,27 @@ void cruzar(float *x1, float *x2, float *a, float *b, var_rule_t *rules, int num
 }
 
 int Linear::resolve(int numGens, int numPop) {
-    float *d_ct, *d_x, *d_res;
     int best = -1;
 
     prepare();
-    preprocess();
+    preProcess();
 
     srand(time(NULL));
     genPop(numPop);
     for(int i = 0; i < numGens; i++){
-        best = evaluate(d_ct, d_x, d_res, z);
+        best = evaluate();
         if(best >= 0){
             newPop(best);
         }
         else break;
 
-        std::cout << "Geracão " + to_string(i) + ": f(x) = " + to_string(*z) + "\n";
+        //Print x
+        for(int i = 0; i < num_x; i++) {
+            std::cout << to_string(pop[best]->x[i]);
+            if(i < num_x - 1)
+                std::cout << ", ";
+        }
+        std::cout << "\n";
     }
 
     return best;
@@ -346,8 +332,8 @@ int Linear::evaluate() {
     int pos_best = -1;
     bool first = true;
     for(int i = 0; i < num_pop; i++){
-        if(isFactible(i)) {
-            matrix_mult(&res, ct, 1, num_x + num_gaps, pop[i]->x, num_x + num_gaps, 1);
+        if(isFeasible(i)) {
+            matrix_mult(&res, ct, 1, num_x + num_surplus, pop[i]->x, num_x + num_surplus, 1);
             pop[i]->z = res;
 
             if (isMin) {
@@ -371,13 +357,13 @@ int Linear::evaluate() {
 void Linear::newPop(int best_index) {
     for(int i = 0; i < num_pop; i++){
         if(i != best_index)
-            cruzar(pop[i]->x, pop[best_index]->x, a, b, rules, num_x, num_gaps, cols_a);
+            cruzar(pop[i]->x, pop[best_index]->x, a, b, rules, num_x, num_surplus, cols_a);
     }
 }
 
-int Linear::isFactible(int index) {
+int Linear::isFeasible(int index) {
     float *x = pop[index]->x;
-    for(int i = 0; i < (num_gaps + num_x); i++){
+    for(int i = 0; i < (num_surplus + num_x); i++){
         if(x[i] < 0) return 0;
     }
     return 1;
@@ -442,5 +428,9 @@ void Linear::setIntVars(std::string exp) {
 
 void Linear::setBinVars(std::string exp) {
     this->binRes = std::move(exp);
+}
+
+float Linear::getZ(int index) {
+    return this->pop[index]->z;
 }
 
