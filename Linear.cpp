@@ -425,6 +425,7 @@ void Linear::newPop(int best_index) {
 
 int Linear::isFeasible(int index) {
     float *x = pop[index]->x;
+    //Verifica todas as variáveis de folga, se alguma for negativa a resposta é infactível
     for(int i = 0; i < (num_surplus + num_x); i++){
         if(x[i] < 0) return 0;
     }
