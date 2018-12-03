@@ -11,6 +11,7 @@
 #define LESS_AND_EQUAL 1
 #define MORE_AND_EQUAL 0
 #define EQUAL 2
+#define T_MUT 10
 
 float global_max = 0;
 
@@ -90,6 +91,7 @@ int Linear::mountRestriction(std::string exp, int row) {
     float aux_value;
     string aux;
 
+    //Loop que le uma string de restrição e monta a linha da matriz
     for(int i = 0; i < exp.length(); i++){
         char c = exp[i];
 
@@ -183,26 +185,33 @@ void print_matrix(float *m,  int rows, int cols){
 }
 
 int Linear::prepare() {
-    this->ct = matrix_create(1, num_x + num_surplus);
-    this->a = matrix_create(rows_a, cols_a);
-    this->b = matrix_create(rows_a, 1);
-    this->rules = (var_rule_t *) (malloc(sizeof(var_rule_t) * (num_x + num_surplus)));
+    this->ct = matrix_create(1, num_x + num_surplus); //Cria a matriz de custo (função objetivo)
+    this->a = matrix_create(rows_a, cols_a); //Cria a matriz A (referente as restrições)
+    this->b = matrix_create(rows_a, 1); //Cria a matriz B (referente as restrições)
+    this->rules = (var_rule_t *) (malloc(sizeof(var_rule_t) * (num_x + num_surplus))); //Cria o vetor de regras (limite das variáveis)
 
+    //Loop que preenche a matriz A de acordo com as restrições dadas
     for(int i = 0; i < rows_a; i++){
         string exp = restrictions[i];
         if(this->mountRestriction(exp, i) == 0)
             return 0;
     }
 
+    //Loop que cria o limitante global das variáveis (gambiarra)
     for(int i = 0; i < num_x; i++){
         rules[i].min = 0;
         rules[i].max = (int) global_max;
         rules[i].isInt = 0;
     }
 
+    //Configura as variáveis inteiras
     mountIntVars(intRes);
+
+
+    //Configura as variáveis binárias
     mountBinVars(binRes);
 
+    //Preenche a matriz de custo e retorna
     return this->mountFunc(func);
 }
 
@@ -223,13 +232,18 @@ void Linear::preProcess() {
 
 }
 
-void generateGaps(float *x, float *b, float *a, int num_x, int num_gaps, int cols_a, var_rule_t *rules){
-    for(int i = num_x; i < (num_x + num_gaps); i++){
-        int row = i - num_x;
+void generateSurplus(float *x, float *b, float *a, int num_x, int num_surplus, int cols_a, var_rule_t *rules){
+
+    //Para cada variável de folga, é calculado seu valor de acordo com a sua restrição correspondente
+    for(int i = num_x; i < (num_x + num_surplus); i++){
+        int row = i - num_x; //Linha da matriz a referente a restrição da variável atual
+
+        //Se a restrição for de igual, não existe variável de folga, ou seja valor 0
         if(rules[i].isLess == EQUAL){
             x[i] = 0;
         }
 
+        //Se a restrição for f(x0,..,xn) <= b, a variável é igual a b - f(x0,...,xn)
         else if(rules[i].isLess == LESS_AND_EQUAL){
             x[i] = b[row];
             for(int j = 0; j < num_x; j++){
@@ -237,54 +251,69 @@ void generateGaps(float *x, float *b, float *a, int num_x, int num_gaps, int col
             }
         }
 
+        //Se a restrição for f(x0,..,xn) >= b, a variável é igual a f(x0,...,xn) - b
         else if(rules[i].isLess == MORE_AND_EQUAL){
             x[i] = 0;
             for(int j = 0; j < num_x; j++){
                 x[i] += a[row*cols_a + j] * x[j];
             }
-            x[i] -= b[i - num_x];
+            x[i] -= b[row];
         }
     }
 }
 
 
 void genX(float *x, float *b, float *a, int num_x, int num_gaps, int cols_a, var_rule_t *rules){
+
+    //Cada variável do problema é inicializada com valor aleatório
     for(int i = 0; i < num_x; i++){
         if(rules[i].isInt == 1)
+            //Gera numero aleatório inteiro
             x[i] = randomInt(rules[i].min, rules[i].max);
         else
-           x[i] = randomFloat(rules[i].min, rules[i].max);
+            //Gera número aleatório real
+            x[i] = randomFloat(rules[i].min, rules[i].max);
     }
 
-    generateGaps(x, b, a, num_x, num_gaps, cols_a, rules);
+    //Gera as variáveis de folga, usada para verificar as restrições do problema
+    generateSurplus(x, b, a, num_x, num_gaps, cols_a, rules);
 
 }
 
 void Linear::genPop(int numPop) {
-    pop = new population_t *[numPop];
+    pop = new population_t *[numPop]; //Cria o vetor de população
+
+
     if(pop != NULL){
         this->num_pop = numPop;
         for(int i = 0; i < numPop; i++){
             pop[i] = new population_t;
-            pop[i]->x = matrix_create(num_x + num_surplus, 1);
+            pop[i]->x = matrix_create(num_x + num_surplus, 1); //Cria a matriz X daquele indivíduo
 
+            //Preenche a matriz X com valores aleatórios
             genX(pop[i]->x, b, a, num_x, num_surplus, cols_a, rules);
         }
     }
 }
-#define T_MUT 10
-void cruzar(float *x1, float *x2, float *a, float *b, var_rule_t *rules, int num_x, int num_gaps, int cols_a){
+void cruzar(float *x1, float *x2, float *a, float *b, var_rule_t *rules, int num_x, int num_surplus, int cols_a){
 
+    //Itera entre todas as variáveis do indivíduo
     for(int i = 0; i < num_x; i++){
+        //Se a variável for binária x1[i] ou mantém seu valor, ou recebe o valor de x2[i]
         if(rules[i].isBin == 1){
             if(randomInt(0, 100) <= 50)
                 x1[i] = x2[i];
         }
+
+        //Se a variável for inteira x1[i] recebe o chão do média de x1[i] e x2[1]
         else if(rules[i].isInt == 1)
             x1[i] = ceil((x1[i] + x2[i])/2);
+
+        //Se a variável for real, x1[i] recebe a média de x1[i] e x2[i]
         else
             x1[i] = (x1[i] + x2[i])/2;
 
+        //Mutação da variável
         if(randomInt(0, 100) <= T_MUT) {
             if(rules[i].isBin == 1){
                 if(x1[i] == 0) x1[i] = 1;
@@ -297,25 +326,36 @@ void cruzar(float *x1, float *x2, float *a, float *b, var_rule_t *rules, int num
         }
     }
 
-    generateGaps(x1, b, a, num_x, num_gaps, cols_a, rules);
+    //Após cruzar as variáveis é preciso calcular as novas variáveis de folga
+    generateSurplus(x1, b, a, num_x, num_surplus, cols_a, rules);
 }
 
 int Linear::resolve(int numGens, int numPop) {
     int best = -1;
 
+    //Processa as strings e monta as matrizes do problema
     prepare();
+
+    //Define os limitantes das variáveis, para gerar mais indivíduos na região factível
     preProcess();
 
     srand(time(NULL));
+    //Gera a população com indivíduos aleatórios
     genPop(numPop);
+
+    //Loop das gerações
     for(int i = 0; i < numGens; i++){
+        //Encontra o melhor indivíduo da população
         best = evaluate();
+
+        //Se best for < 0, não houve indivíduo factível
         if(best >= 0){
+            //Gera uma nova população, cruzando com o melhor de todos
             newPop(best);
         }
         else break;
 
-        //Print x
+        //Imprime na tela os valores de x do melhor de todos da geração
         for(int i = 0; i < num_x; i++) {
             std::cout << to_string(pop[best]->x[i]);
             if(i < num_x - 1)
@@ -331,19 +371,27 @@ int Linear::evaluate() {
     float best, res;
     int pos_best = -1;
     bool first = true;
+
+    //Para cada indivíduo da população é calculado o valor da função objetivo, ou seja, ct * x
     for(int i = 0; i < num_pop; i++){
+        //Se a variável for infactível, a respostá é inválida, portanto não é necessário calcular
         if(isFeasible(i)) {
-            matrix_mult(&res, ct, 1, num_x + num_surplus, pop[i]->x, num_x + num_surplus, 1);
+            //res = ct * x
+            matrix_mult(&res, ct, 1, num_x + num_surplus, pop[i]->x, num_x + num_surplus, 1); //multiplicação de matrizes
             pop[i]->z = res;
 
-            if (isMin) {
-                if (first || res < best) {
+            //Verifica se a solução é melhor
+            if (isMin) { //Se o problema for de minimizar
+
+                if (first || res < best) {//Se a solução for melhor
                     pos_best = i;
                     best = res;
                     first = false;
                 }
-            } else {
-                if (first || res > best) {
+
+            } else { //Se o problema for de maximizar
+
+                if (first || res > best) { //Se a solução for melhor
                     pos_best = i;
                     best = res;
                     first = false;
@@ -351,10 +399,12 @@ int Linear::evaluate() {
             }
         }
     }
+    //Retorna o indice do melhor de todos
     return pos_best;
 }
 
 void Linear::newPop(int best_index) {
+    //Para cada individuo da população, menos o melhor, cruzar com o melhor de todos
     for(int i = 0; i < num_pop; i++){
         if(i != best_index)
             cruzar(pop[i]->x, pop[best_index]->x, a, b, rules, num_x, num_surplus, cols_a);

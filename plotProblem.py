@@ -3,20 +3,30 @@ import matplotlib.pyplot as plt
 
 def transform_constraint(expression):
     aux = ""
-    ret = []
+    value = 0
+    ret = [0, 0, 0]
     pos = False
+    flag = True
     for c in expression:
-        if '0' <= c <= '9':
-            aux += c
-        if c == 'x':
-            value = float(aux)
+        if c == '<' or c == '>' or (c == '=' and flag):
+            index = int(aux)
+            ret[index] = value
             aux = ""
-            if not pos:
-                ret.append(value)
+            pos = False
+            flag = False
+        if '0' <= c <= '9' or c == '-':
+            aux += c
+            flag = True
+        if c == 'x' or c == '+' or c == '-':
+            if pos:
+                index = int(aux)
+                ret[index] = value
+            else:
+                value = float(aux)
+            aux = ""
             pos = not pos
 
-    value = float(aux)
-    ret.append(value)
+    ret[2] = float(aux)
 
     return ret
 
@@ -69,14 +79,15 @@ def read_output(filename):
 
 
 def plot_points(x, y):
-    plt.plot(x, y, 'ro')
+    plt.plot(x, y, 'b.')
 
 
 if __name__ == "__main__":
     n, cons = read_input('in')
     if n == 2:
-        cons = transform_constraint(cons)
         plot_constraints(cons)
 
         x, y = read_output('out')
         plot_points(x, y)
+        plt.axis()
+        plt.show()
