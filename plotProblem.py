@@ -14,17 +14,18 @@ def transform_constraint(expression):
             aux = ""
             pos = False
             flag = False
-        if '0' <= c <= '9' or c == '-':
-            aux += c
-            flag = True
         if c == 'x' or c == '+' or c == '-':
             if pos:
                 index = int(aux)
                 ret[index] = value
-            else:
+                pos = False
+            elif len(aux) > 0:
                 value = float(aux)
+                pos = True
             aux = ""
-            pos = not pos
+        if '0' <= c <= '9' or c == '-':
+            aux += c
+            flag = True
 
     ret[2] = float(aux)
 

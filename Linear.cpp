@@ -12,6 +12,7 @@
 #define GREATER_AND_EQUAL 0
 #define EQUAL 2
 #define T_MUT 10
+#define MAX_X 100000
 
 float global_max = 0;
 
@@ -200,7 +201,7 @@ int Linear::prepare() {
     //Loop que cria o limitante global das variáveis (gambiarra)
     for(int i = 0; i < num_x; i++){
         rules[i].min = 0;
-        rules[i].max = (int) global_max;
+        rules[i].max = MAX_X;
         rules[i].isInt = 0;
     }
 
@@ -219,26 +220,22 @@ void Linear::preProcess() {
 
     for(int i = 0; i < num_x; i++){
         for(int j = 0; j < rows_a; j++){
-            if(isMin) {
-                if (rules[num_surplus + j].isLess == LESS_AND_EQUAL && a[j * cols_a + i] > 0) {
+                if (rules[num_x + j].isLess == LESS_AND_EQUAL && a[j * cols_a + i] > 0) {
                     int aux = (int) (b[j] / a[j * cols_a + i]);
                     if (aux < rules[i].max) rules[i].max = aux;
-                } else if (rules[num_surplus + j].isLess == GREATER_AND_EQUAL && a[j * cols_a + i] < 0) {
+                } else if (rules[num_x + j].isLess == GREATER_AND_EQUAL && a[j * cols_a + i] < 0) {
                     int aux = (int) (b[j] / (-1 * a[j * cols_a + i]));
                     if (aux < rules[i].max) rules[i].max = aux;
                 }
-            }
 
-            else{
-                if (rules[num_surplus + j].isLess == GREATER_AND_EQUAL && a[j * cols_a + i] > 0) {
+                if (rules[num_x + j].isLess == GREATER_AND_EQUAL && a[j * cols_a + i] > 0) {
                     int aux = (int) (b[j] / a[j * cols_a + 1]);
                     if (aux > rules[i].min) rules[i].min = aux;
                 }
-                else if(rules[num_surplus + j].isLess == LESS_AND_EQUAL && a[j * cols_a + i] < 0) {
+                else if(rules[num_x + j].isLess == LESS_AND_EQUAL && a[j * cols_a + i] < 0) {
                     int aux = (int) (b[j] / (-1* a[j * cols_a + i]));
                     if (aux > rules[i].min) rules[i].min = aux;
                 }
-            }
         }
     }
 
@@ -344,6 +341,7 @@ void cruzar(float *x1, float *x2, float *a, float *b, var_rule_t *rules, int num
 
 int Linear::resolve(int numGens, int numPop) {
     int best = -1;
+	FILE *fp = fopen("out", "w");
 
     //Processa as strings e monta as matrizes do problema
     prepare();
@@ -367,21 +365,23 @@ int Linear::resolve(int numGens, int numPop) {
         }
         else break;
 
-        //Imprime na tela os valores de x do melhor de todos da geração
+        //Imprime no arquivo 'out' os valores de x do melhor de todos da geração
         for(int i = 0; i < num_x; i++) {
-            std::cout << to_string(pop[best]->x[i]);
+            fprintf(fp, "%s", to_string(pop[best]->x[i]).c_str());
             if(i < num_x - 1)
-                std::cout << ", ";
+            	fprintf(fp, ", ");
         }
-        std::cout << "\n";
+       	fprintf(fp, "\n");
     }
 
-    return best;
+    if(isFeasible(best))
+        return best;
+    return -1;
 }
 
 int Linear::evaluate() {
-    float best, res;
-    int pos_best = -1;
+    float best, res, best_unfeas;
+    int pos_best = -1, pos_best_uf = -1;
     bool first = true;
 
     //Para cada indivíduo da população é calculado o valor da função objetivo, ou seja, ct * x
@@ -410,7 +410,30 @@ int Linear::evaluate() {
                 }
             }
         }
+
+		else{ //Se a solução for infactivel
+			float aux = pop[i]->x[num_x];
+			int aux_pos = num_x;
+			//Laço que acha a pior variável de folga dessa solução, com menor valor
+			for(int j = num_x+1; j < num_surplus; j++){
+				if(pop[i]->x[j] < aux){
+				   	aux = pop[i]->x[j];
+					aux_pos = j;
+				}
+			}
+			
+			//Encontra a solução infactivel com as melhores variaveis de folga negativas, mais proximo de 0
+			if(pos_best_uf < 0 || aux > best_unfeas){
+				best_unfeas = aux;
+				pos_best_uf = aux_pos;
+			}
+
+		}
     }
+	//Se todas soluções forem infactiveis
+	if(pos_best < 0)
+	   return pos_best_uf; //Retorna a melhor solução infactivel (mais proximo da factibilidade)	
+
     //Retorna o indice do melhor de todos
     return pos_best;
 }

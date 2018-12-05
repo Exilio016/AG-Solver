@@ -34,6 +34,23 @@ int main() {
     std::getline(std::cin, func);
     problem->setBinVars(func);
 
-    problem->resolve(1000, 25);
+    int i = problem->resolve(1000, 25);
+
+    if(i < 0){
+        std::cout << "O AG não encontrou solução factível para o problema!\n";
+    }
+    else{
+        std::cout << "A melhor solução encontrada em 1000 gerações foi Z = " << std::to_string(problem->getZ(i)) <<"\n";
+        std::cout << "Os valores de X dessa solução é:\n";
+        float *x = problem->getX(i);
+
+        for(int j = 0; j < nX; j++){
+            std::cout << std::to_string(x[j]) << " ";
+        }
+        std::cout << "\n";
+
+    }
+
+
     return 0;
 }
