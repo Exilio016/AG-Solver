@@ -10,7 +10,8 @@ O software foi feito na linguagem c++, utilizando apenas bibliotecas padrões, p
 `./prog`
 
 ## Equipe
-O projeto foi feito pelos alunos
+O projeto foi feito pelos alunos:
+
 Bruno Flávio Ferreira
 
 Edson Yudi Toma
