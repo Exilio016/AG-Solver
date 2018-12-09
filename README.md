@@ -9,11 +9,24 @@ O software foi feito na linguagem c++, utilizando apenas bibliotecas padrões, p
 
 `./prog`
 
+## Plotar o gráfico:
+Para plotar o gráfico basta escrever um arquivo "in" com sua entrada e em seguida executar:
+(OBS: o arquivo "in" deve estar no mesmo diretório da main)
+
+`g++ -o prog utils.cpp Linear.cpp main.cpp`
+
+`./prog < in`
+
+`python plotProblem.py`
+
+## Vídeo explicativo:
+https://youtu.be/SQ5XCKpNXDI
+
 ## Equipe
 O projeto foi feito pelos alunos:
 
-Bruno Flávio Ferreira
+Bruno Flávio Ferreira (bruno.flavio.ferreira@usp.br)
 
-Edson Yudi Toma
+Edson Yudi Toma (edson.toma@usp.br)
 
-Rafael Amaro Rolfsen
+Rafael Amaro Rolfsen (rafael.rolfsen@usp.br)
