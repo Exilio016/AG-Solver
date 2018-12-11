@@ -1,3 +1,6 @@
+//Bruno Flavio Ferreira
+//Edson Yudi Toma
+//Rafael Amaro Rolfsen
 #include <iostream>
 #include "Linear.h"
 
